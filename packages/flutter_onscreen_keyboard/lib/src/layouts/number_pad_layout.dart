@@ -28,11 +28,11 @@ class NumberPadKeyboardLayout extends KeyboardLayout {
   final bool signed;
 
   @override
-  double get aspectRatio => 3 / 4;
+  double get aspectRatio => 1;
 
-  /// Uses half the configured keyboard width so numpad keys remain square.
+  /// Uses the full configured keyboard width.
   @override
-  double get widthFactor => 0.5;
+  double get widthFactor => 1;
 
   @override
   Map<String, KeyboardMode> get modes => {
@@ -70,12 +70,21 @@ class NumberPadKeyboardLayout extends KeyboardLayout {
     // Row 4: ± (or spacer) | 0 | . (or spacer) | backspace
     KeyboardRow(
       keys: [
-        if (signed) const OnscreenKeyboardKey.text(primary: '±'),
-        OnscreenKeyboardKey.text(
-          primary: '0',
-          flex: (decimal || signed) ? 40 : 30,
-        ),
-        if (decimal) const OnscreenKeyboardKey.text(primary: '.'),
+        if (signed)
+          const OnscreenKeyboardKey.text(primary: '±')
+        else
+          const OnscreenKeyboardKey.action(
+            name: 'noop',
+            child: SizedBox.shrink(),
+          ),
+        const OnscreenKeyboardKey.text(primary: '0'),
+        if (decimal)
+          const OnscreenKeyboardKey.text(primary: '.')
+        else
+          const OnscreenKeyboardKey.action(
+            name: 'noop',
+            child: SizedBox.shrink(),
+          ),
         const OnscreenKeyboardKey.action(
           name: ActionKeyType.backspace,
           child: Icon(Icons.backspace_outlined),

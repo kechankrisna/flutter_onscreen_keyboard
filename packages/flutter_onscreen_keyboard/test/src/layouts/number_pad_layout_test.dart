@@ -7,15 +7,15 @@ void main() {
       expect(const NumberPadKeyboardLayout(), isA<KeyboardLayout>());
     });
 
-    test('aspectRatio is 3/4', () {
+    test('aspectRatio is 1/1', () {
       expect(
         const NumberPadKeyboardLayout().aspectRatio,
-        closeTo(3 / 4, 0.001),
+        closeTo(1.0, 0.001),
       );
     });
 
-    test('widthFactor is 0.5', () {
-      expect(const NumberPadKeyboardLayout().widthFactor, 0.5);
+    test('widthFactor is 1.0', () {
+      expect(const NumberPadKeyboardLayout().widthFactor, 1.0);
     });
 
     group('modes', () {

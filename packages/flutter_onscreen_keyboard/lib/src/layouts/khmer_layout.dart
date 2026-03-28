@@ -38,7 +38,7 @@ class KhmerKeyboardLayout extends LanguageKeyboardLayout {
   bool get isRtl => false;
 
   @override
-  double get aspectRatio => 4 / 1.5;
+  double get aspectRatio => 5 / 3;
 
   @override
   Map<String, KeyboardMode> get modes => {

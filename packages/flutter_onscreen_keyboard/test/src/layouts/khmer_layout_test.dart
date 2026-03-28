@@ -17,8 +17,8 @@ void main() {
       expect(layout.isRtl, isFalse);
     });
 
-    test('aspectRatio is 4/1.5', () {
-      expect(layout.aspectRatio, closeTo(4 / 1.5, 0.001));
+    test('aspectRatio is 5/3', () {
+      expect(layout.aspectRatio, closeTo(5 / 3, 0.001));
     });
 
     test('is a LanguageKeyboardLayout', () {

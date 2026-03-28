@@ -20,20 +20,21 @@ class App extends StatelessWidget {
           const EnglishKeyboardLayout(),
           // you can add more layouts here
         ],
-        // width: (context) {
-        //   // you can customize the keyboard size based on screen size or layout
-        //   final size = MediaQuery.sizeOf(context);
-        //   final width = size.width;
-        //   if (width < 600) {
-        //     return width;
-        //   }
-        //   return width / 2;
-        // },
-        height: (context) {
-          final shortestSide = MediaQuery.sizeOf(context).shortestSide;
-          return (shortestSide * 0.6).clamp(180.0, 300.0);
+        width: (context) {
+          final width = MediaQuery.sizeOf(context).width;
+          // On phones use full width; on tablets cap to half.
+          return width < 600 ? width : width / 2;
         },
-        aspectRatio: 5 / 3,
+
+        /// numpadLayoutWidth determine the numpad layout width
+        /// numpadLayoutHeight determine the numpad layout height
+        numPadWidth: (context) {
+          final width = MediaQuery.sizeOf(context).width;
+          // On phones half-width; on tablets a quarter.
+          return width < 600 ? width : width / 3;
+        },
+        numPadAspectRatio: 1, // square numpad keys (half the keyboard width)
+
         theme: OnscreenKeyboardThemeData.ios(),
         // ...more options
       ),

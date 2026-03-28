@@ -32,6 +32,8 @@ class OnscreenKeyboard extends StatefulWidget {
     this.height,
     this.dragHandle,
     this.aspectRatio,
+    this.numPadAspectRatio,
+    this.numPadWidth,
     this.showControlBar = true,
     this.buildControlBarActions,
     this.supportedLanguages,
@@ -71,6 +73,18 @@ class OnscreenKeyboard extends StatefulWidget {
 
   /// {@macro keyboardLayout.aspectRatio}
   final double? aspectRatio;
+
+  /// Overrides the aspect ratio used when a [NumberPadKeyboardLayout] is
+  /// active. When null, the numpad uses its own [KeyboardLayout.aspectRatio].
+  ///
+  /// Example: `numPadAspectRatio: 1.0` makes the numpad keys square.
+  final double? numPadAspectRatio;
+
+  /// Overrides the width callback used when a [NumberPadKeyboardLayout] is
+  /// active. When null, falls back to [width].
+  ///
+  /// Example: `numPadWidth: (context) => MediaQuery.sizeOf(context).width / 2`
+  final WidthGetter? numPadWidth;
 
   /// Whether to show the control bar at the top of the keyboard.
   /// Defaults to `true`.
@@ -145,6 +159,8 @@ class OnscreenKeyboard extends StatefulWidget {
     bool showControlBar = true,
     Widget? dragHandle,
     double? aspectRatio,
+    double? numPadAspectRatio,
+    WidthGetter? numPadWidth,
     ActionsBuilder? buildControlBarActions,
     List<LanguageKeyboardLayout>? supportedLanguages,
     WordPredictionCallback? wordPrediction,
@@ -158,6 +174,8 @@ class OnscreenKeyboard extends StatefulWidget {
       showControlBar: showControlBar,
       dragHandle: dragHandle,
       aspectRatio: aspectRatio,
+      numPadAspectRatio: numPadAspectRatio,
+      numPadWidth: numPadWidth,
       buildControlBarActions: buildControlBarActions,
       supportedLanguages: supportedLanguages,
       wordPrediction: wordPrediction,
@@ -714,19 +732,31 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
                                               //   2. Width only → height driven by AspectRatio inside RawOnscreenKeyboard
                                               //   3. Height only → derive width from height × aspectRatio
                                               //   4. Neither → 40%-of-height heuristic
+                                              final isNumPad =
+                                                  _layout
+                                                      is NumberPadKeyboardLayout;
                                               final effectiveAspectRatio =
+                                                  (isNumPad
+                                                      ? widget.numPadAspectRatio
+                                                      : null) ??
                                                   widget.aspectRatio ??
                                                   _layout.aspectRatio;
+                                              final effectiveWidthGetter =
+                                                  (isNumPad
+                                                      ? widget.numPadWidth
+                                                      : null) ??
+                                                  widget.width;
                                               final widthFactor =
                                                   _layout.widthFactor;
 
                                               final double keyboardWidth;
                                               final double? keyboardHeight;
 
-                                              if (widget.width != null &&
+                                              if (effectiveWidthGetter !=
+                                                      null &&
                                                   widget.height != null) {
                                                 keyboardWidth =
-                                                    widget.width!.call(
+                                                    effectiveWidthGetter.call(
                                                       context,
                                                     ) *
                                                     widthFactor;
@@ -734,9 +764,10 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
                                                     .call(
                                                       context,
                                                     );
-                                              } else if (widget.width != null) {
+                                              } else if (effectiveWidthGetter !=
+                                                  null) {
                                                 keyboardWidth =
-                                                    widget.width!.call(
+                                                    effectiveWidthGetter.call(
                                                       context,
                                                     ) *
                                                     widthFactor;
@@ -862,8 +893,8 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
                                                             null)
                                                           Expanded(
                                                             child: RawOnscreenKeyboard(
-                                                              aspectRatio: widget
-                                                                  .aspectRatio,
+                                                              aspectRatio:
+                                                                  effectiveAspectRatio,
                                                               onKeyDown:
                                                                   _onKeyDown,
                                                               onKeyUp: _onKeyUp,
@@ -879,8 +910,8 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
                                                           )
                                                         else
                                                           RawOnscreenKeyboard(
-                                                            aspectRatio: widget
-                                                                .aspectRatio,
+                                                            aspectRatio:
+                                                                effectiveAspectRatio,
                                                             onKeyDown:
                                                                 _onKeyDown,
                                                             onKeyUp: _onKeyUp,
