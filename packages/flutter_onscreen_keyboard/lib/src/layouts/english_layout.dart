@@ -43,8 +43,10 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
   @override
   double get aspectRatio => 5 / 3;
 
-  @override
-  Map<String, KeyboardMode> get modes => {
+  // Modes are static so that all KeyboardRow / OnscreenKeyboardKey objects
+  // are allocated exactly once for the lifetime of the app, rather than on
+  // every RawOnscreenKeyboard rebuild.
+  static final Map<String, KeyboardMode> _modes = {
     'alphabets': KeyboardMode(rows: _alphabetsMode),
     'symbols': KeyboardMode(rows: _symbolsMode, verticalSpacing: 20),
     'emojis': KeyboardMode(
@@ -59,9 +61,12 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
     ),
   };
 
+  @override
+  Map<String, KeyboardMode> get modes => _modes;
+
   // ── Alphabets mode ─────────────────────────────────────────────────────────
 
-  List<KeyboardRow> get _alphabetsMode => [
+  static final List<KeyboardRow> _alphabetsMode = [
     // Row 0 — number row + backspace
     KeyboardRow(
       keys: [
@@ -153,9 +158,7 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
         ),
         OnscreenKeyboardKey.action(
           name: 'emoji',
-          child: const Center(
-            child: Text('😊', textAlign: TextAlign.center),
-          ),
+          child: const Text('😊'),
           onTap: (context) => context.controller.setModeNamed('emojis'),
         ),
         OnscreenKeyboardKey.action(
@@ -179,7 +182,7 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
 
   // ── Symbols mode ───────────────────────────────────────────────────────────
 
-  List<KeyboardRow> get _symbolsMode => [
+  static final List<KeyboardRow> _symbolsMode = [
     ...[
       [
         ('1', '~'),
@@ -266,9 +269,9 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  OnscreenKeyboardKey _buildKeyWithSecondary((String, String) key) =>
+  static OnscreenKeyboardKey _buildKeyWithSecondary((String, String) key) =>
       OnscreenKeyboardKey.text(primary: key.$1, secondary: key.$2);
 
-  KeyboardRow _buildRowWithSecondary(List<(String, String)> keys) =>
+  static KeyboardRow _buildRowWithSecondary(List<(String, String)> keys) =>
       KeyboardRow(keys: keys.map(_buildKeyWithSecondary).toList());
 }

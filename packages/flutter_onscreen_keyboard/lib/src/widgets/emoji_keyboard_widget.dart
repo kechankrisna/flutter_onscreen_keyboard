@@ -50,68 +50,88 @@ class EmojiKeyboardWidget extends StatefulWidget {
 
 class _EmojiKeyboardWidgetState extends State<EmojiKeyboardWidget> {
   final _scrollController = ScrollController();
-  int _activeCategoryIndex = 0;
+
+  /// Drives the tab-strip highlight without rebuilding the entire widget.
+  /// Only the [ValueListenableBuilder] wrapping the tab row will re-render.
+  late final ValueNotifier<int> _activeCategoryNotifier;
+
+  /// Pre-computed Y-offsets for each category section so the scroll listener
+  /// can do an O(log n) binary search instead of O(n) linear scan.
+  late List<double> _sectionOffsets;
 
   @override
   void initState() {
     super.initState();
+    _activeCategoryNotifier = ValueNotifier(0);
+    _precomputeOffsets();
     _scrollController.addListener(_syncTabFromScroll);
+  }
+
+  @override
+  void didUpdateWidget(EmojiKeyboardWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Row height change means all offsets are stale — recompute.
+    if (oldWidget.rowHeight != widget.rowHeight) _precomputeOffsets();
   }
 
   @override
   void dispose() {
     _scrollController.removeListener(_syncTabFromScroll);
     _scrollController.dispose();
+    _activeCategoryNotifier.dispose();
     super.dispose();
   }
 
   // ── Offset helpers ─────────────────────────────────────────────────────────
 
-  /// Total scroll height of a category section (header + rows).
-  double _sectionHeight(EmojiCategory cat) {
-    final rows = (cat.emojis.length / _kCols).ceil();
-    return _kHeaderHeight + rows * widget.rowHeight;
-  }
+  /// Total scroll height of a single category section (header + rows).
+  double _sectionHeight(EmojiCategory cat) =>
+      _kHeaderHeight + (cat.emojis.length / _kCols).ceil() * widget.rowHeight;
 
-  /// Y offset of the start of [categoryIndex] in the scroll view.
-  double _offsetOf(int categoryIndex) {
+  /// Builds [_sectionOffsets] once so all later look-ups are O(1)/O(log n).
+  void _precomputeOffsets() {
     double y = 0;
-    for (var i = 0; i < categoryIndex; i++) {
+    _sectionOffsets = List.generate(emojiCategories.length, (i) {
+      final offset = y;
       y += _sectionHeight(emojiCategories[i]);
-    }
-    return y;
+      return offset;
+    });
   }
 
   // ── Sync active tab from scroll position ───────────────────────────────────
 
+  /// Called on every scroll frame. Uses a binary search over [_sectionOffsets]
+  /// (O(log n)) and writes to [ValueNotifier] — *no* setState, so the emoji
+  /// grid is never rebuilt.
   void _syncTabFromScroll() {
     if (!_scrollController.hasClients) return;
-    final offset = _scrollController.offset;
-    double y = 0;
-    for (var i = 0; i < emojiCategories.length; i++) {
-      final h = _sectionHeight(emojiCategories[i]);
-      if (offset < y + h - widget.rowHeight / 2) {
-        if (_activeCategoryIndex != i) {
-          setState(() => _activeCategoryIndex = i);
-        }
-        return;
+    // Offset half a row ahead so the tab flips as the header enters the top.
+    final offset = _scrollController.offset + widget.rowHeight / 2;
+
+    // Binary search: find the last category whose start offset <= [offset].
+    var lo = 0;
+    var hi = emojiCategories.length - 1;
+    while (lo < hi) {
+      final mid = (lo + hi + 1) ~/ 2;
+      if (_sectionOffsets[mid] <= offset) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
       }
-      y += h;
     }
-    // Scrolled past the last category.
-    final last = emojiCategories.length - 1;
-    if (_activeCategoryIndex != last) {
-      setState(() => _activeCategoryIndex = last);
+    if (_activeCategoryNotifier.value != lo) {
+      _activeCategoryNotifier.value = lo;
     }
   }
 
   // ── Tab tap handler ─────────────────────────────────────────────────────────
 
   void _scrollToCategory(int index) {
-    setState(() => _activeCategoryIndex = index);
+    _activeCategoryNotifier.value = index;
+    if (!_scrollController.hasClients) return;
     _scrollController.animateTo(
       math.min(
-        _offsetOf(index),
+        _sectionOffsets[index],
         _scrollController.position.maxScrollExtent,
       ),
       duration: const Duration(milliseconds: 250),
@@ -124,80 +144,57 @@ class _EmojiKeyboardWidgetState extends State<EmojiKeyboardWidget> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final activeColor = colorScheme.primary;
-    final inactiveColor = colorScheme.onSurface.withValues(alpha: 0.5);
-    final headerStyle = TextStyle(
-      fontSize: 10,
-      fontWeight: FontWeight.w700,
-      color: colorScheme.onSurface.withValues(alpha: 0.6),
-    );
 
     // ── Category tab strip ───────────────────────────────────────────────────
+    // ValueListenableBuilder scopes re-renders to this sub-tree only.
+    // The emoji grid and action row are *never* rebuilt when tabs change.
     final tabStrip = SizedBox(
       height: widget.rowHeight,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            for (int i = 0; i < emojiCategories.length; i++)
-              _buildTab(
-                emojiCategories[i].icon,
-                isActive: i == _activeCategoryIndex,
-                activeColor: activeColor,
-                inactiveColor: inactiveColor,
-                onTap: () => _scrollToCategory(i),
-                rowHeight: widget.rowHeight,
-              ),
-          ],
+        child: ValueListenableBuilder<int>(
+          valueListenable: _activeCategoryNotifier,
+          builder: (context, activeIndex, _) => Row(
+            children: [
+              for (var i = 0; i < emojiCategories.length; i++)
+                _Tab(
+                  icon: emojiCategories[i].icon,
+                  isActive: i == activeIndex,
+                  size: widget.rowHeight,
+                  onTap: () => _scrollToCategory(i),
+                ),
+            ],
+          ),
         ),
       ),
     );
 
-    // ── Emoji grid (scrollable) ──────────────────────────────────────────────
+    // ── Emoji grid (lazy via slivers) ────────────────────────────────────────
+    // CustomScrollView + SliverFixedExtentList builds only the visible rows,
+    // versus the old Column approach which allocated all ~1 000 emoji widgets
+    // at once.
     final emojiGrid = Expanded(
-      child: SingleChildScrollView(
+      child: CustomScrollView(
         controller: _scrollController,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final cat in emojiCategories) ...[
-              // Section header
-              SizedBox(
-                height: _kHeaderHeight,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(cat.name, style: headerStyle),
-                  ),
+        slivers: [
+          for (final cat in emojiCategories) ...[
+            // Section header — SliverToBoxAdapter keeps it in the flow.
+            SliverToBoxAdapter(child: _CategoryHeader(name: cat.name)),
+            // Rows are fixed-height, so SliverFixedExtentList skips per-item
+            // layout measurement (one of the fastest sliver types).
+            SliverFixedExtentList(
+              itemExtent: widget.rowHeight,
+              delegate: SliverChildBuilderDelegate(
+                (context, r) => _EmojiRow(
+                  emojis: cat.emojis,
+                  rowIndex: r,
+                  onTap: widget.insertText,
                 ),
+                childCount: (cat.emojis.length / _kCols).ceil(),
               ),
-              // Emoji rows
-              for (int r = 0; r < (cat.emojis.length / _kCols).ceil(); r++)
-                SizedBox(
-                  height: widget.rowHeight,
-                  child: Row(
-                    children: [
-                      for (int c = 0; c < _kCols; c++)
-                        () {
-                          final idx = r * _kCols + c;
-                          if (idx >= cat.emojis.length) {
-                            return const Expanded(child: SizedBox.shrink());
-                          }
-                          final emoji = cat.emojis[idx];
-                          return Expanded(
-                            child: _EmojiButton(
-                              emoji: emoji,
-                              onTap: () => widget.insertText(emoji),
-                            ),
-                          );
-                        }(),
-                    ],
-                  ),
-                ),
-            ],
+            ),
           ],
-        ),
+        ],
       ),
     );
 
@@ -206,7 +203,6 @@ class _EmojiKeyboardWidgetState extends State<EmojiKeyboardWidget> {
       height: widget.rowHeight,
       child: Row(
         children: [
-          // Back to keyboard
           Expanded(
             flex: 3,
             child: _ActionKey(
@@ -215,16 +211,11 @@ class _EmojiKeyboardWidgetState extends State<EmojiKeyboardWidget> {
               ).setModeNamed(widget.backModeName),
               child: Text(
                 widget.backModeLabel,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: colorScheme.onSurface,
-                ),
+                style: TextStyle(fontSize: 13, color: colorScheme.onSurface),
               ),
             ),
           ),
-          // Space: just as fat as the emoji area allows
           const Expanded(flex: 7, child: SizedBox.shrink()),
-          // Backspace
           Expanded(
             flex: 2,
             child: _ActionKey(
@@ -247,33 +238,78 @@ class _EmojiKeyboardWidgetState extends State<EmojiKeyboardWidget> {
       ),
     );
   }
+}
 
-  Widget _buildTab(
-    String icon, {
-    required bool isActive,
-    required Color activeColor,
-    required Color inactiveColor,
-    required VoidCallback onTap,
-    required double rowHeight,
-  }) {
+// ── Private widgets ───────────────────────────────────────────────────────────
+// Using StatelessWidgets instead of helper functions lets Flutter short-circuit
+// rebuilds when the same widget instance is re-encountered in the tree.
+
+/// One tab button in the category strip.
+class _Tab extends StatelessWidget {
+  const _Tab({
+    required this.icon,
+    required this.isActive,
+    required this.size,
+    required this.onTap,
+  });
+
+  final String icon;
+  final bool isActive;
+  final double size;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final color = isActive
+        ? colorScheme.primary
+        : colorScheme.onSurface.withValues(alpha: 0.5);
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: rowHeight,
-        height: rowHeight,
+        width: size,
+        height: size,
         decoration: isActive
             ? BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: activeColor, width: 2),
+                  bottom: BorderSide(color: colorScheme.primary, width: 2),
                 ),
               )
             : null,
         alignment: Alignment.center,
         child: Text(
           icon,
-          style: TextStyle(
-            fontSize: rowHeight * 0.45,
-            color: isActive ? activeColor : inactiveColor,
+          style: TextStyle(fontSize: size * 0.45, color: color),
+        ),
+      ),
+    );
+  }
+}
+
+/// Category section header rendered as a sliver item.
+class _CategoryHeader extends StatelessWidget {
+  const _CategoryHeader({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: 0.6);
+    return SizedBox(
+      height: _kHeaderHeight,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Text(
+            name,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
           ),
         ),
       ),
@@ -281,7 +317,34 @@ class _EmojiKeyboardWidgetState extends State<EmojiKeyboardWidget> {
   }
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+/// One row of up to [_kCols] emoji buttons inside the lazy sliver list.
+class _EmojiRow extends StatelessWidget {
+  const _EmojiRow({
+    required this.emojis,
+    required this.rowIndex,
+    required this.onTap,
+  });
+
+  final List<String> emojis;
+  final int rowIndex;
+  final void Function(String) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final start = rowIndex * _kCols;
+    return Row(
+      children: [for (var c = 0; c < _kCols; c++) _buildCell(start + c)],
+    );
+  }
+
+  Widget _buildCell(int idx) {
+    if (idx >= emojis.length) return const Expanded(child: SizedBox.shrink());
+    final emoji = emojis[idx];
+    return Expanded(
+      child: _EmojiButton(emoji: emoji, onTap: () => onTap(emoji)),
+    );
+  }
+}
 
 class _EmojiButton extends StatelessWidget {
   const _EmojiButton({required this.emoji, required this.onTap});
