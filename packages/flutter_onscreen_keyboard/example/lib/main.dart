@@ -20,17 +20,21 @@ class App extends StatelessWidget {
           const EnglishKeyboardLayout(),
           // you can add more layouts here
         ],
-        width: (context) {
-          // you can customize the keyboard size based on screen size or layout
-          final size = MediaQuery.sizeOf(context);
-          final width = size.width;
-          if (width < 600) {
-            return width;
-          }
-          return width / 2;
+        // width: (context) {
+        //   // you can customize the keyboard size based on screen size or layout
+        //   final size = MediaQuery.sizeOf(context);
+        //   final width = size.width;
+        //   if (width < 600) {
+        //     return width;
+        //   }
+        //   return width / 2;
+        // },
+        height: (context) {
+          final shortestSide = MediaQuery.sizeOf(context).shortestSide;
+          return (shortestSide * 0.6).clamp(180.0, 300.0);
         },
+        aspectRatio: 5 / 3,
         theme: OnscreenKeyboardThemeData.ios(),
-        // height: (context) => (MediaQuery.sizeOf(context).width / 2) * 0.5,
         // ...more options
       ),
 
