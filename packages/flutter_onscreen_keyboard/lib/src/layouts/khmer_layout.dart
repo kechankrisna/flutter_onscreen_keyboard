@@ -73,8 +73,6 @@ class KhmerKeyboardLayout extends LanguageKeyboardLayout {
         textStyle: const TextStyle(
           fontFamily: 'NotoSerifKhmer',
           package: 'flutter_onscreen_keyboard',
-          fontSize: 16,
-          height: 1.2,
         ),
       ),
     );

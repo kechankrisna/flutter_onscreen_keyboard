@@ -59,6 +59,7 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
             boxShadow: [],
             // fix for: https://github.com/flutter/flutter/issues/119623
             padding: const EdgeInsets.only(left: 3),
+            textStyle: theme.textKeyThemeData.textStyle,
           ),
         );
       },
