@@ -37,6 +37,12 @@ abstract class KeyboardLayout {
   /// Each mode (e.g., `'letters'`, `'symbols'`, `'numbers'`) defines the
   /// structure of the keyboard when that mode is active.
   Map<String, KeyboardMode> get modes;
+
+  /// Fraction of the configured keyboard width this layout should occupy.
+  ///
+  /// Defaults to `1.0` (full width). Override to a smaller value (e.g. `0.5`)
+  /// for compact layouts like a numeric keypad.
+  double get widthFactor => 1;
 }
 
 /// Represents a single layout mode in the keyboard.

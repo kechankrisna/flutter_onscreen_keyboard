@@ -20,7 +20,16 @@ class App extends StatelessWidget {
           const EnglishKeyboardLayout(),
           // you can add more layouts here
         ],
-        width: (context) => MediaQuery.sizeOf(context).width / 2,
+        width: (context) {
+          // you can customize the keyboard size based on screen size or layout
+          final size = MediaQuery.sizeOf(context);
+          final width = size.width;
+          if (width < 600) {
+            return width;
+          }
+          return width / 2;
+        },
+        theme: OnscreenKeyboardThemeData.ios(),
         // height: (context) => (MediaQuery.sizeOf(context).width / 2) * 0.5,
         // ...more options
       ),
@@ -117,6 +126,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     decoration: InputDecoration(
                       labelText: 'Name',
                     ),
+                  ),
+
+                  const OnscreenKeyboardTextField(
+                    decoration: InputDecoration(
+                      labelText: 'Price',
+                    ),
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: true,
+                      // signed: true,
+                    ),
+                    // keyboardType: TextInputType.number,
                   ),
 
                   // you can disable the keyboard if you want

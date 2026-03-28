@@ -17,4 +17,7 @@ abstract interface class OnscreenKeyboardFieldState {
 
   /// The [ValueChanged<String>] callback for text changes.
   ValueChanged<String>? get onChanged;
+
+  /// The keyboard type of the field.
+  TextInputType? get keyboardType;
 }

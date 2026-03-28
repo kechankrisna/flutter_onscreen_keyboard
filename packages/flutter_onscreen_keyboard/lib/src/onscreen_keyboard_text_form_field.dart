@@ -764,18 +764,23 @@ class _OnscreenKeyboardTextFormFieldState
   void _onFocusChanged() {
     if (!widget.enableOnscreenKeyboard) return;
     if (_effectiveFocusNode.hasPrimaryFocus) {
-      final mode =
-          widget.onscreenKeyboardMode ??
-          _keyboard.layout.modes.entries.first.key;
-
-      _keyboard
-        ..attachTextField(this)
-        ..setModeNamed(mode)
-        ..open();
+      _keyboard.attachTextField(this);
+      // For numeric fields the layout is already switched to numpad by
+      // attachTextField — no mode override needed.
+      if (!_isNumericKeyboardType(widget.keyboardType)) {
+        final mode =
+            widget.onscreenKeyboardMode ??
+            _keyboard.layout.modes.entries.first.key;
+        _keyboard.setModeNamed(mode);
+      }
+      _keyboard.open();
     } else {
       _keyboard.close();
     }
   }
+
+  static bool _isNumericKeyboardType(TextInputType? kt) =>
+      kt != null && kt.index == TextInputType.number.index;
 
   @override
   TextEditingController get controller => _effectiveController;
@@ -791,6 +796,9 @@ class _OnscreenKeyboardTextFormFieldState
 
   @override
   ValueChanged<String>? get onChanged => widget.onChanged;
+
+  @override
+  TextInputType? get keyboardType => widget.keyboardType;
 
   @override
   Widget build(BuildContext context) {

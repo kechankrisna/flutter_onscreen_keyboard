@@ -402,6 +402,31 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
     _removePredictionListener();
     _activeTextField.value = state;
     _addPredictionListener(state);
+    _switchLayoutForField(state);
+  }
+
+  /// The layout active before a numpad switch, used to restore when returning
+  /// to a non-numeric field.
+  KeyboardLayout? _priorLayout;
+
+  /// Detects whether [keyboardType] is numeric and switches to/from numpad.
+  void _switchLayoutForField(OnscreenKeyboardFieldState state) {
+    final kt = state.keyboardType;
+    // Both TextInputType.number and TextInputType.numberWithOptions have index == 2.
+    final isNumeric = kt != null && kt.index == TextInputType.number.index;
+
+    if (isNumeric) {
+      final decimal = kt.decimal ?? false;
+      final signed = kt.signed ?? false;
+      if (_layout is! NumberPadKeyboardLayout) {
+        _priorLayout = _layout;
+      }
+      setLayout(NumberPadKeyboardLayout(decimal: decimal, signed: signed));
+    } else if (_layout is NumberPadKeyboardLayout) {
+      final restore = _priorLayout;
+      _priorLayout = null;
+      if (restore != null) setLayout(restore);
+    }
   }
 
   @override
@@ -692,21 +717,29 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
                                               final effectiveAspectRatio =
                                                   widget.aspectRatio ??
                                                   _layout.aspectRatio;
+                                              final widthFactor =
+                                                  _layout.widthFactor;
 
                                               final double keyboardWidth;
                                               final double? keyboardHeight;
 
                                               if (widget.width != null &&
                                                   widget.height != null) {
-                                                keyboardWidth = widget.width!
-                                                    .call(context);
+                                                keyboardWidth =
+                                                    widget.width!.call(
+                                                      context,
+                                                    ) *
+                                                    widthFactor;
                                                 keyboardHeight = widget.height!
                                                     .call(
                                                       context,
                                                     );
                                               } else if (widget.width != null) {
-                                                keyboardWidth = widget.width!
-                                                    .call(context);
+                                                keyboardWidth =
+                                                    widget.width!.call(
+                                                      context,
+                                                    ) *
+                                                    widthFactor;
                                                 keyboardHeight = null;
                                               } else if (widget.height !=
                                                   null) {
@@ -716,7 +749,8 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
                                                     );
                                                 keyboardWidth =
                                                     keyboardHeight *
-                                                    effectiveAspectRatio;
+                                                    effectiveAspectRatio *
+                                                    widthFactor;
                                               } else {
                                                 // Default: cap to 40 % of
                                                 // available height, clamped
@@ -727,14 +761,16 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
                                                         .isFinite
                                                     ? constraints.maxHeight *
                                                           0.4 *
-                                                          effectiveAspectRatio
+                                                          effectiveAspectRatio *
+                                                          widthFactor
                                                     : double.infinity;
                                                 final maxByWidth =
                                                     constraints
                                                         .maxWidth
                                                         .isFinite
-                                                    ? constraints.maxWidth
-                                                    : 500.0;
+                                                    ? constraints.maxWidth *
+                                                          widthFactor
+                                                    : 500.0 * widthFactor;
                                                 keyboardWidth =
                                                     maxByHeight < maxByWidth
                                                     ? maxByHeight
