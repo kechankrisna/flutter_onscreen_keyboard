@@ -129,6 +129,12 @@ class ActionKeyWidget extends StatelessWidget {
             (theme.fitChild ? const EdgeInsets.all(28) : EdgeInsets.zero),
         child: actionKey.child,
       ),
+      Text() => Center(
+        child: Padding(
+          padding: theme.padding ?? const EdgeInsets.all(4),
+          child: actionKey.child,
+        ),
+      ),
       Widget() => Padding(
         padding: theme.padding ?? EdgeInsets.zero,
         child: actionKey.child,
@@ -139,7 +145,9 @@ class ActionKeyWidget extends StatelessWidget {
       ),
     };
 
-    if (theme.fitChild) {
+    // FittedBox scales Icon children to fill available space.
+    // Text children render at their natural size — no scaling needed.
+    if (theme.fitChild && actionKey.child is! Text) {
       child = FittedBox(child: child);
     }
 
@@ -179,7 +187,14 @@ class ActionKeyWidget extends StatelessWidget {
                   ? theme.pressedForegroundColor ?? colors.onPrimary
                   : theme.foregroundColor ?? colors.onSurface,
             ),
-            child: child,
+            child: DefaultTextStyle.merge(
+              style: TextStyle(
+                color: pressed
+                    ? theme.pressedForegroundColor ?? colors.onPrimary
+                    : theme.foregroundColor ?? colors.onSurface,
+              ),
+              child: child,
+            ),
           ),
         ),
       ),

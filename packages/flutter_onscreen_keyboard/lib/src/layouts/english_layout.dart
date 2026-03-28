@@ -160,7 +160,9 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
         ),
         OnscreenKeyboardKey.action(
           name: 'emoji',
-          child: const Text('😊'),
+          child: const Center(
+            child: Text('😊', textAlign: TextAlign.center),
+          ),
           onTap: (context) => context.controller.setModeNamed('emojis'),
         ),
         OnscreenKeyboardKey.action(
