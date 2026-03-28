@@ -30,3 +30,11 @@ topics:
   - onscreen-keyboard
   - flutter-keyboard
   - flutter-onscreen-keyboard
+
+flutter:
+  fonts:
+    - family: NotoSerifKhmer
+      fonts:
+        - asset: assets/fonts/NotoSerifKhmer-Regular.ttf
+        - asset: assets/fonts/NotoSerifKhmer-Bold.ttf
+          weight: 700

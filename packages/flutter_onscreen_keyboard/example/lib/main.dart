@@ -15,7 +15,13 @@ class App extends StatelessWidget {
     return MaterialApp(
       // use OnscreenKeyboard.builder on MaterialApp.builder
       builder: OnscreenKeyboard.builder(
+        supportedLanguages: [
+          const KhmerKeyboardLayout(),
+          const EnglishKeyboardLayout(),
+          // you can add more layouts here
+        ],
         width: (context) => MediaQuery.sizeOf(context).width / 2,
+        height: (context) => (MediaQuery.sizeOf(context).width / 2) * 0.5,
         // ...more options
       ),
 
@@ -107,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // TextField that opens the keyboard on focus
                   const OnscreenKeyboardTextField(
-                    // enableOnscreenKeyboard: false,
+                    enableOnscreenKeyboard: false,
                     decoration: InputDecoration(
                       labelText: 'Name',
                     ),

@@ -57,4 +57,10 @@ abstract interface class OnscreenKeyboardController {
   ///
   /// The [modeName] must exist in the current [KeyboardLayout.modes].
   void setModeNamed(String modeName);
+
+  /// Replaces the current keyboard layout at runtime.
+  ///
+  /// Resets the active mode to the first mode of [layout] and clears any
+  /// pressed modifier keys. Use this to switch between languages.
+  void setLayout(KeyboardLayout layout);
 }

@@ -38,3 +38,4 @@ export 'src/onscreen_keyboard.dart'
         OnscreenKeyboardTextFormField;
 export 'src/raw_onscreen_keyboard.dart' show RawOnscreenKeyboard;
 export 'src/theme/onscreen_keyboard_theme_data.dart';
+export 'src/types.dart' show HeightGetter, WidthGetter, WordPredictionCallback;

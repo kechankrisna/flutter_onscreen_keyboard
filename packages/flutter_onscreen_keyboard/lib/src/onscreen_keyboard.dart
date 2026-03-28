@@ -10,6 +10,8 @@ import 'package:flutter_onscreen_keyboard/src/constants/action_key_type.dart';
 import 'package:flutter_onscreen_keyboard/src/theme/onscreen_keyboard_theme.dart';
 import 'package:flutter_onscreen_keyboard/src/types.dart';
 import 'package:flutter_onscreen_keyboard/src/utils/extensions.dart';
+import 'package:flutter_onscreen_keyboard/src/widgets/language_picker_bar.dart';
+import 'package:flutter_onscreen_keyboard/src/widgets/suggestion_bar.dart';
 
 part 'onscreen_keyboard_controller.dart';
 part 'onscreen_keyboard_field_state.dart';
@@ -28,10 +30,14 @@ class OnscreenKeyboard extends StatefulWidget {
     this.layout,
     this.theme,
     this.width,
+    this.height,
     this.dragHandle,
     this.aspectRatio,
     this.showControlBar = true,
     this.buildControlBarActions,
+    this.supportedLanguages,
+    this.wordPrediction,
+    this.maxSuggestions = 5,
   });
 
   /// The main application child widget.
@@ -54,6 +60,13 @@ class OnscreenKeyboard extends StatefulWidget {
   /// An optional width configuration function for the keyboard.
   final WidthGetter? width;
 
+  /// An optional height configuration function for the keyboard.
+  ///
+  /// When provided, the keyboard height is fixed to the returned value and
+  /// the width is derived automatically from the layout's aspect ratio
+  /// (unless [width] is also set, in which case both are used as-is).
+  final HeightGetter? height;
+
   /// A widget displayed as a drag handle to move the keyboard.
   final Widget? dragHandle;
 
@@ -66,6 +79,27 @@ class OnscreenKeyboard extends StatefulWidget {
 
   /// {@macro controlBar.actions}
   final ActionsBuilder? buildControlBarActions;
+
+  /// The list of language layouts available in the built-in language picker.
+  ///
+  /// When more than one layout is provided, a language picker strip is shown
+  /// between the control bar and the key rows. Tapping a language calls
+  /// [OnscreenKeyboardController.setLayout] automatically.
+  ///
+  /// Set to `null` (default) to hide the picker entirely.
+  final List<LanguageKeyboardLayout>? supportedLanguages;
+
+  /// An optional callback for generating word-prediction suggestions.
+  ///
+  /// When provided, a suggestion bar is shown above the key rows. The callback
+  /// receives the current word fragment before the cursor and the full field
+  /// text, and should return a list of completions asynchronously.
+  ///
+  /// Tapping a suggestion replaces the current word and appends a space.
+  final WordPredictionCallback? wordPrediction;
+
+  /// Maximum number of word predictions to display. Defaults to `5`.
+  final int maxSuggestions;
 
   /// A builder to wrap the app with [OnscreenKeyboard].
   ///
@@ -108,19 +142,27 @@ class OnscreenKeyboard extends StatefulWidget {
     OnscreenKeyboardThemeData? theme,
     KeyboardLayout? layout,
     WidthGetter? width,
+    HeightGetter? height,
     bool showControlBar = true,
     Widget? dragHandle,
     double? aspectRatio,
     ActionsBuilder? buildControlBarActions,
+    List<LanguageKeyboardLayout>? supportedLanguages,
+    WordPredictionCallback? wordPrediction,
+    int maxSuggestions = 5,
   }) => (context, child) {
     return OnscreenKeyboard(
       theme: theme,
       layout: layout,
       width: width,
+      height: height,
       showControlBar: showControlBar,
       dragHandle: dragHandle,
       aspectRatio: aspectRatio,
       buildControlBarActions: buildControlBarActions,
+      supportedLanguages: supportedLanguages,
+      wordPrediction: wordPrediction,
+      maxSuggestions: maxSuggestions,
       child: child!,
     );
   };
@@ -358,13 +400,17 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
 
   @override
   void attachTextField(OnscreenKeyboardFieldState state) {
+    _removePredictionListener();
     _activeTextField.value = state;
+    _addPredictionListener(state);
   }
 
   @override
   void detachTextField([OnscreenKeyboardFieldState? state]) {
     if (state == null || state == activeTextField) {
+      _removePredictionListener();
       _activeTextField.value = null;
+      if (_suggestions.isNotEmpty) setState(() => _suggestions = []);
     }
   }
 
@@ -396,7 +442,10 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
   };
 
   /// The resolved layout used by the keyboard.
-  late final KeyboardLayout _layout = widget.layout ?? _getDefaultLayout();
+  late KeyboardLayout _layout =
+      widget.layout ??
+      widget.supportedLanguages?.firstOrNull ??
+      _getDefaultLayout();
 
   /// The current active keyboard mode (e.g., "alphabetic", "symbols").
   ///
@@ -426,6 +475,83 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
     }
   }
 
+  @override
+  void setLayout(KeyboardLayout layout) {
+    setState(() {
+      _layout = layout;
+      _mode = layout.modes.keys.first;
+      _pressedActionKeys.clear();
+    });
+  }
+
+  // ── Word-prediction state ────────────────────────────────────────────────
+
+  List<String> _suggestions = [];
+  VoidCallback? _textFieldListener;
+
+  void _addPredictionListener(OnscreenKeyboardFieldState state) {
+    if (widget.wordPrediction == null) return;
+    _textFieldListener = () => _onActiveTextChanged(state.controller);
+    state.controller.addListener(_textFieldListener!);
+  }
+
+  void _removePredictionListener() {
+    final field = activeTextField;
+    if (field != null && _textFieldListener != null) {
+      field.controller.removeListener(_textFieldListener!);
+      _textFieldListener = null;
+    }
+  }
+
+  Future<void> _onActiveTextChanged(TextEditingController controller) async {
+    if (widget.wordPrediction == null || !mounted) return;
+    final text = controller.text;
+    final cursor = controller.selection.baseOffset;
+    if (cursor < 0) {
+      if (_suggestions.isNotEmpty) setState(() => _suggestions = []);
+      return;
+    }
+    final before = text.substring(0, cursor);
+    final currentWord = before.split(RegExp(r'[\s\n]+')).last;
+    if (currentWord.isEmpty) {
+      if (_suggestions.isNotEmpty) setState(() => _suggestions = []);
+      return;
+    }
+    try {
+      final results = await widget.wordPrediction!(currentWord, text);
+      if (mounted) {
+        setState(
+          () => _suggestions = results.take(widget.maxSuggestions).toList(),
+        );
+      }
+    } on Exception catch (_) {
+      if (mounted && _suggestions.isNotEmpty) {
+        setState(() => _suggestions = []);
+      }
+    }
+  }
+
+  void _applySuggestion(String word) {
+    final field = activeTextField;
+    if (field == null) return;
+    final controller = field.controller;
+    if (!controller.selection.isValid) return;
+    final text = controller.text;
+    final cursor = controller.selection.baseOffset;
+    if (cursor < 0) return;
+    final before = text.substring(0, cursor);
+    final after = text.substring(cursor);
+    final wordStart = before.lastIndexOf(RegExp(r'[\s\n]')) + 1;
+    final newText = '${text.substring(0, wordStart)}$word $after';
+    final newCursor = wordStart + word.length + 1;
+    controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newCursor),
+    );
+    field.onChanged?.call(newText);
+    setState(() => _suggestions = []);
+  }
+
   final GlobalKey _keyboardKey = GlobalKey();
 
   /// Alignment of the keyboard
@@ -436,6 +562,7 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
 
   @override
   void dispose() {
+    _removePredictionListener();
     _alignListener.dispose();
     _draggingListener.dispose();
     super.dispose();
@@ -542,59 +669,201 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
                                             BorderRadius.circular(6);
                                         return Material(
                                           type: MaterialType.transparency,
-                                          child: Container(
-                                            width: widget.width?.call(context),
-                                            margin: theme.margin,
-                                            padding: theme.padding,
-                                            clipBehavior: Clip.hardEdge,
-                                            decoration: BoxDecoration(
-                                              color: theme.color,
-                                              borderRadius: borderRadius,
-                                              gradient: theme.gradient,
-                                              boxShadow:
-                                                  theme.boxShadow ??
-                                                  [
-                                                    BoxShadow(
-                                                      color: colors.shadow.fade(
-                                                        0.05,
-                                                      ),
-                                                      spreadRadius: 5,
-                                                      blurRadius: 5,
-                                                    ),
-                                                  ],
-                                            ),
-                                            foregroundDecoration: BoxDecoration(
-                                              borderRadius: borderRadius,
-                                              border:
-                                                  theme.border ??
-                                                  Border.all(
-                                                    color: colors.outline
-                                                        .fade(),
-                                                  ),
-                                            ),
-                                            child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                if (widget.showControlBar)
-                                                  _ControlBar(
-                                                    dragHandle: dragHandle,
-                                                    actions: widget
-                                                        .buildControlBarActions
-                                                        ?.call(context),
-                                                  ),
-                                                RawOnscreenKeyboard(
-                                                  aspectRatio:
-                                                      widget.aspectRatio,
-                                                  onKeyDown: _onKeyDown,
-                                                  onKeyUp: _onKeyUp,
-                                                  layout: _layout,
-                                                  mode: _mode,
-                                                  pressedActionKeys:
-                                                      _pressedActionKeys,
-                                                  showSecondary: _showSecondary,
+                                          child: LayoutBuilder(
+                                            builder: (context, constraints) {
+                                              // Resolve keyboard dimensions.
+                                              // Priority:
+                                              //   1. Both width & height set → use both as-is
+                                              //   2. Width only → height driven by AspectRatio inside RawOnscreenKeyboard
+                                              //   3. Height only → derive width from height × aspectRatio
+                                              //   4. Neither → 40%-of-height heuristic
+                                              final effectiveAspectRatio =
+                                                  widget.aspectRatio ??
+                                                  _layout.aspectRatio;
+
+                                              final double keyboardWidth;
+                                              final double? keyboardHeight;
+
+                                              if (widget.width != null &&
+                                                  widget.height != null) {
+                                                keyboardWidth = widget.width!
+                                                    .call(context);
+                                                keyboardHeight = widget.height!
+                                                    .call(
+                                                      context,
+                                                    );
+                                              } else if (widget.width != null) {
+                                                keyboardWidth = widget.width!
+                                                    .call(context);
+                                                keyboardHeight = null;
+                                              } else if (widget.height !=
+                                                  null) {
+                                                keyboardHeight = widget.height!
+                                                    .call(
+                                                      context,
+                                                    );
+                                                keyboardWidth =
+                                                    keyboardHeight *
+                                                    effectiveAspectRatio;
+                                              } else {
+                                                // Default: cap to 40 % of
+                                                // available height, clamped
+                                                // to available width.
+                                                final maxByHeight =
+                                                    constraints
+                                                        .maxHeight
+                                                        .isFinite
+                                                    ? constraints.maxHeight *
+                                                          0.4 *
+                                                          effectiveAspectRatio
+                                                    : double.infinity;
+                                                final maxByWidth =
+                                                    constraints
+                                                        .maxWidth
+                                                        .isFinite
+                                                    ? constraints.maxWidth
+                                                    : 500.0;
+                                                keyboardWidth =
+                                                    maxByHeight < maxByWidth
+                                                    ? maxByHeight
+                                                    : maxByWidth;
+                                                keyboardHeight = null;
+                                              }
+                                              return Container(
+                                                width: keyboardWidth,
+                                                height: keyboardHeight,
+                                                margin: theme.margin,
+                                                padding: theme.padding,
+                                                clipBehavior: Clip.hardEdge,
+                                                decoration: BoxDecoration(
+                                                  color: theme.color,
+                                                  borderRadius: borderRadius,
+                                                  gradient: theme.gradient,
+                                                  boxShadow:
+                                                      theme.boxShadow ??
+                                                      [
+                                                        BoxShadow(
+                                                          color: colors.shadow
+                                                              .fade(0.05),
+                                                          spreadRadius: 5,
+                                                          blurRadius: 5,
+                                                        ),
+                                                      ],
                                                 ),
-                                              ],
-                                            ),
+                                                foregroundDecoration:
+                                                    BoxDecoration(
+                                                      borderRadius:
+                                                          borderRadius,
+                                                      border:
+                                                          theme.border ??
+                                                          Border.all(
+                                                            color: colors
+                                                                .outline
+                                                                .fade(),
+                                                          ),
+                                                    ),
+                                                child: Builder(
+                                                  builder: (context) {
+                                                    final textDirection =
+                                                        _layout
+                                                                is LanguageKeyboardLayout &&
+                                                            (_layout
+                                                                    as LanguageKeyboardLayout)
+                                                                .isRtl
+                                                        ? TextDirection.rtl
+                                                        : TextDirection.ltr;
+
+                                                    final activeLanguageCode =
+                                                        _layout
+                                                            is LanguageKeyboardLayout
+                                                        ? (_layout
+                                                                  as LanguageKeyboardLayout)
+                                                              .languageCode
+                                                        : null;
+
+                                                    return Column(
+                                                      mainAxisSize:
+                                                          keyboardHeight != null
+                                                          ? MainAxisSize.max
+                                                          : MainAxisSize.min,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .stretch,
+                                                      children: [
+                                                        if (widget
+                                                            .showControlBar)
+                                                          _ControlBar(
+                                                            dragHandle:
+                                                                dragHandle,
+                                                            actions: widget
+                                                                .buildControlBarActions
+                                                                ?.call(context),
+                                                          ),
+                                                        if (widget.supportedLanguages !=
+                                                                null &&
+                                                            widget
+                                                                    .supportedLanguages!
+                                                                    .length >
+                                                                1)
+                                                          LanguagePickerBar(
+                                                            supportedLanguages:
+                                                                widget
+                                                                    .supportedLanguages!,
+                                                            activeLanguageCode:
+                                                                activeLanguageCode,
+                                                          ),
+                                                        SuggestionBar(
+                                                          suggestions:
+                                                              _suggestions,
+                                                          onSuggestionTap:
+                                                              _applySuggestion,
+                                                        ),
+                                                        // When height is
+                                                        // explicit, Expanded
+                                                        // makes the key rows
+                                                        // fill the remaining
+                                                        // space after the bars.
+                                                        if (keyboardHeight !=
+                                                            null)
+                                                          Expanded(
+                                                            child: RawOnscreenKeyboard(
+                                                              aspectRatio: widget
+                                                                  .aspectRatio,
+                                                              onKeyDown:
+                                                                  _onKeyDown,
+                                                              onKeyUp: _onKeyUp,
+                                                              layout: _layout,
+                                                              mode: _mode,
+                                                              pressedActionKeys:
+                                                                  _pressedActionKeys,
+                                                              showSecondary:
+                                                                  _showSecondary,
+                                                              textDirection:
+                                                                  textDirection,
+                                                            ),
+                                                          )
+                                                        else
+                                                          RawOnscreenKeyboard(
+                                                            aspectRatio: widget
+                                                                .aspectRatio,
+                                                            onKeyDown:
+                                                                _onKeyDown,
+                                                            onKeyUp: _onKeyUp,
+                                                            layout: _layout,
+                                                            mode: _mode,
+                                                            pressedActionKeys:
+                                                                _pressedActionKeys,
+                                                            showSecondary:
+                                                                _showSecondary,
+                                                            textDirection:
+                                                                textDirection,
+                                                          ),
+                                                      ],
+                                                    );
+                                                  },
+                                                ),
+                                              );
+                                            },
                                           ),
                                         );
                                       },
