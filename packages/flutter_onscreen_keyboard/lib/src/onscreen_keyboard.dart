@@ -874,6 +874,8 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
                                                           _ControlBar(
                                                             dragHandle:
                                                                 dragHandle,
+                                                            activeTextField:
+                                                                _activeTextField,
                                                             actions: widget
                                                                 .buildControlBarActions
                                                                 ?.call(context),
@@ -969,15 +971,19 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
 /// Default control bar widget used in the on-screen keyboard.
 ///
 /// This bar typically appears at the top of the keyboard and provides:
-class _ControlBar extends StatelessWidget {
+class _ControlBar extends StatefulWidget {
   /// Creates a control bar for the on-screen keyboard.
   const _ControlBar({
     required this.dragHandle,
+    required this.activeTextField,
     this.actions,
   });
 
   /// A widget used for dragging the keyboard.
   final Widget dragHandle;
+
+  /// The active text field notifier, used to display the current input value.
+  final ValueNotifier<OnscreenKeyboardFieldState?> activeTextField;
 
   /// {@template controlBar.actions}
   /// Optional custom action widgets shown on the right side of the control bar.
@@ -990,15 +996,36 @@ class _ControlBar extends StatelessWidget {
   final List<Widget>? actions;
 
   @override
+  State<_ControlBar> createState() => _ControlBarState();
+}
+
+class _ControlBarState extends State<_ControlBar> {
+  final ScrollController _scrollController = ScrollController();
+
+  void _scrollToEnd() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final theme = context.theme;
 
     final Widget trailing;
-    if (actions != null && actions!.isNotEmpty) {
+    if (widget.actions != null && widget.actions!.isNotEmpty) {
       trailing = Row(
         mainAxisSize: MainAxisSize.min,
-        children: actions!,
+        children: widget.actions!,
       );
     } else {
       trailing = Flexible(
@@ -1039,7 +1066,29 @@ class _ControlBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            dragHandle,
+            widget.dragHandle,
+            Expanded(
+              child: ValueListenableBuilder<OnscreenKeyboardFieldState?>(
+                valueListenable: widget.activeTextField,
+                builder: (context, field, _) {
+                  if (field == null) return const SizedBox.shrink();
+                  return AnimatedBuilder(
+                    animation: field.controller,
+                    builder: (context, _) {
+                      _scrollToEnd();
+                      return SingleChildScrollView(
+                        controller: _scrollController,
+                        scrollDirection: Axis.horizontal,
+                        child: Text(
+                          field.controller.text,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
             trailing,
           ],
         ),
