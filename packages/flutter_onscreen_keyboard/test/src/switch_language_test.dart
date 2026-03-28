@@ -82,10 +82,10 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('ក'), findsWidgets);
 
-        // Second tap → back to English (swap_horiz icon for mode_switch)
+        // Second tap → back to English (?123 is the mode_switch label in alphabets)
         await tester.tap(switchKey);
         await tester.pumpAndSettle();
-        expect(find.byIcon(Icons.swap_horiz_rounded), findsWidgets);
+        expect(find.text('?123'), findsOneWidget);
       },
     );
   });

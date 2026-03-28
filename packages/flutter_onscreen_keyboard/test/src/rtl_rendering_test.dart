@@ -16,7 +16,7 @@ void main() {
               width: 400,
               child: RawOnscreenKeyboard(
                 layout: const KhmerKeyboardLayout(),
-                mode: 'consonants',
+                mode: 'khmer',
                 onKeyDown: (_) {},
                 onKeyUp: (_) {},
                 textDirection: textDirection,

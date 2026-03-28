@@ -68,46 +68,23 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
   // ── Alphabets mode ─────────────────────────────────────────────────────────
 
   List<KeyboardRow> get _alphabetsMode => [
-    _buildRowWithSecondary([
-      ('1', '!'),
-      ('2', '@'),
-      ('3', '#'),
-      ('4', r'$'),
-      ('5', '%'),
-      ('6', '^'),
-      ('7', '&'),
-      ('8', '*'),
-      ('9', '('),
-      ('0', ')'),
-    ]),
-
-    _buildRow(['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p']),
-
-    KeyboardRow(
-      leading: const Expanded(flex: 10, child: SizedBox.shrink()),
-      keys: [
-        'a',
-        's',
-        'd',
-        'f',
-        'g',
-        'h',
-        'j',
-        'k',
-        'l',
-      ].map(_buildKey).toList(),
-      trailing: const Expanded(flex: 10, child: SizedBox.shrink()),
-    ),
-
+    // Row 0 — number row + backspace
     KeyboardRow(
       keys: [
-        const OnscreenKeyboardKey.action(
-          name: ActionKeyType.capslock,
-          child: Icon(Icons.keyboard_capslock_rounded),
-          flex: 30,
-          canHold: true,
-        ),
-        ...['z', 'x', 'c', 'v', 'b', 'n', 'm'].map(_buildKey),
+        ..._buildRowWithSecondary([
+          ('1', '!'),
+          ('2', '@'),
+          ('3', '#'),
+          ('4', r'$'),
+          ('5', '%'),
+          ('6', '^'),
+          ('7', '&'),
+          ('8', '*'),
+          ('9', '('),
+          ('0', ')'),
+          ('-', '_'),
+          ('+', '='),
+        ]).keys,
         const OnscreenKeyboardKey.action(
           name: ActionKeyType.backspace,
           child: Icon(Icons.backspace_outlined),
@@ -116,27 +93,85 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
       ],
     ),
 
+    // Row 1 — QWERTY row with secondaries + brackets
+    _buildRowWithSecondary([
+      ('q', 'Q'),
+      ('w', 'W'),
+      ('e', 'E'),
+      ('r', 'R'),
+      ('t', 'T'),
+      ('y', 'Y'),
+      ('u', 'U'),
+      ('i', 'I'),
+      ('o', 'O'),
+      ('p', 'P'),
+      ('[', '{'),
+      (']', '}'),
+    ]),
+
+    // Row 2 — ASDF row with secondaries (no indent)
+    _buildRowWithSecondary([
+      ('a', 'A'),
+      ('s', 'S'),
+      ('d', 'D'),
+      ('f', 'F'),
+      ('g', 'G'),
+      ('h', 'H'),
+      ('j', 'J'),
+      ('k', 'K'),
+      ('l', 'L'),
+      (';', ':'),
+      ("'", '"'),
+    ]),
+
+    // Row 3 — CapsLock + ZXCV row with secondaries + punctuation
+    KeyboardRow(
+      keys: [
+        const OnscreenKeyboardKey.action(
+          name: ActionKeyType.capslock,
+          child: Icon(Icons.keyboard_capslock_rounded),
+          flex: 30,
+          canHold: true,
+        ),
+        ...[
+          ('z', 'Z'),
+          ('x', 'X'),
+          ('c', 'C'),
+          ('v', 'V'),
+          ('b', 'B'),
+          ('n', 'N'),
+          ('m', 'M'),
+          (',', '<'),
+          ('.', '>'),
+          ('/', '?'),
+        ].map(_buildKeyWithSecondary),
+      ],
+    ),
+
+    // Row 4 — action row
     KeyboardRow(
       keys: [
         OnscreenKeyboardKey.action(
           name: 'mode_switch',
-          child: const Icon(Icons.swap_horiz_rounded),
-          onTap: (context) => context.controller.switchMode(),
+          child: const Text('?123'),
+          onTap: (context) => context.controller.setModeNamed('symbols'),
           flex: 30,
+        ),
+        OnscreenKeyboardKey.action(
+          name: 'emoji',
+          child: const Text('😊'),
+          onTap: (context) => context.controller.setModeNamed('emojis'),
         ),
         OnscreenKeyboardKey.action(
           name: 'switch_language',
           child: const Icon(Icons.language_rounded),
           onTap: (context) => context.controller.switchLanguage(),
-          flex: 30,
         ),
-        const OnscreenKeyboardKey.text(primary: '/'),
         const OnscreenKeyboardKey.text(
           primary: ' ',
           child: Icon(Icons.space_bar_rounded),
-          flex: 20 * 5,
+          flex: 100,
         ),
-        const OnscreenKeyboardKey.text(primary: '.'),
         const OnscreenKeyboardKey.action(
           name: ActionKeyType.enter,
           child: Icon(Icons.keyboard_return_rounded),
@@ -205,23 +240,25 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
       keys: [
         OnscreenKeyboardKey.action(
           name: 'mode_switch',
-          child: const Icon(Icons.swap_horiz_rounded),
-          onTap: (context) => context.controller.switchMode(),
+          child: const Text('ABC'),
+          onTap: (context) => context.controller.setModeNamed('alphabets'),
           flex: 30,
+        ),
+        OnscreenKeyboardKey.action(
+          name: 'emoji',
+          child: const Text('😊'),
+          onTap: (context) => context.controller.setModeNamed('emojis'),
         ),
         OnscreenKeyboardKey.action(
           name: 'switch_language',
           child: const Icon(Icons.language_rounded),
           onTap: (context) => context.controller.switchLanguage(),
-          flex: 30,
         ),
-        const OnscreenKeyboardKey.text(primary: ',', secondary: '<'),
         const OnscreenKeyboardKey.text(
           primary: ' ',
           child: Icon(Icons.space_bar_rounded),
-          flex: 20 * 5,
+          flex: 100,
         ),
-        const OnscreenKeyboardKey.text(primary: '.', secondary: '>'),
         const OnscreenKeyboardKey.action(
           name: ActionKeyType.enter,
           child: Icon(Icons.keyboard_return_rounded),
@@ -256,8 +293,8 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
       keys: [
         OnscreenKeyboardKey.action(
           name: 'mode_switch',
-          child: const Icon(Icons.swap_horiz_rounded),
-          onTap: (context) => context.controller.switchMode(),
+          child: const Text('ABC'),
+          onTap: (context) => context.controller.setModeNamed('alphabets'),
         ),
         OnscreenKeyboardKey.action(
           name: 'switch_language',

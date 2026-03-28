@@ -395,3 +395,23 @@ This project is licensed under the [MIT License](LICENSE).
 
 Created and maintained by [Albin PK](https://github.com/albinpk).
 If you find this package useful, consider giving it a ⭐ on GitHub and a like on [pub.dev](https://pub.dev/packages/flutter_onscreen_keyboard)!
+
+
+Keyboard Layout for english characters
+
+[ "1/!", "2/@", "3/#", "4/$", "5/%", "6/^", "7/&", "8/*", "9/(", "0/)", "-/_", "+/=", "backspace" ]
+[ "q/Q", "w/W", "e/E", "r/R", "t/T", "y/Y", "u/U", "i/I", "o/O", "p/P", "[/{", "]/}" ]
+[ "a/A", "s/S", "d/D", "f/F", "g/G", "h/H", "j/J", "k/K", "l/L", ";/:", "'/\"" ]
+[ "capslock", "z/Z", "x/X", "c/C", "v/V", "b/B", "n/N", "m/M", ",/<", "./>", "//?" ]
+[ "123/sym", "emoji", "language", "space", "enter" ]
+
+
+Keyboard Layout for khmer characters
+
+[ "១/!", "២/ៗ", "៣/#", "៤/៛", "៥/%", "៦/៍", "៧/័", "៨/៏", "៩/(", "០/)", "-/៌", "=/ឱ", "backspace" ]
+[ "ឆ/ឈ", "ឹ/ឺ", "េ/ែ", "រ/ឬ", "ត/ថ", "យ/ឲ្យ", "ុ/ូ", "ិ/ី", "ូ/ួ", "ព/ភ", "[/្រ", "]/ល" ]
+[ ៉ា/ាំ, "ស/ៃ", "ដ/ឌ", "ថ/ធ", "ង/អ", "ហ/ះ", "្/ញ", "ក/គ", "ល/ឡ", "ើ/ោះ", "់/៉" ]
+[ "capslock", "ច/ឆ", "ឈ/ញ", "ជ/ឌ", "ដ/ឍ", "ណ/ណ", "ប/ផ", "ព/ភ", "ម/ំ", "ុំ/ុះ", "។/៕", "៊/?" ]
+[ "123/sym", "emoji", "language", "space", "enter" ]
+
+

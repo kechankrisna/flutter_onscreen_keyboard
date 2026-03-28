@@ -30,58 +30,58 @@ void main() {
     });
 
     group('modes', () {
-      test('has consonants mode', () {
-        expect(layout.modes.containsKey('consonants'), isTrue);
+      test('has khmer mode', () {
+        expect(layout.modes.containsKey('khmer'), isTrue);
       });
 
-      test('has vowels mode', () {
-        expect(layout.modes.containsKey('vowels'), isTrue);
+      test('has symbols mode', () {
+        expect(layout.modes.containsKey('symbols'), isTrue);
       });
 
-      test('has numbers mode', () {
-        expect(layout.modes.containsKey('numbers'), isTrue);
+      test('has emojis mode', () {
+        expect(layout.modes.containsKey('emojis'), isTrue);
       });
 
       test('has exactly 3 modes', () {
         expect(layout.modes.length, 3);
       });
 
-      test('first mode is consonants', () {
-        expect(layout.modes.keys.first, 'consonants');
+      test('first mode is khmer', () {
+        expect(layout.modes.keys.first, 'khmer');
       });
     });
 
-    group('consonants mode', () {
+    group('khmer mode', () {
       late List<KeyboardRow> rows;
 
       setUp(() {
-        rows = layout.modes['consonants']!.rows;
+        rows = layout.modes['khmer']!.rows;
       });
 
       test('has 5 rows', () {
         expect(rows.length, 5);
       });
 
-      test('first row has 10 consonants', () {
-        expect(rows[0].keys.length, 10);
+      test('first row has 13 keys (12 text + backspace)', () {
+        expect(rows[0].keys.length, 13);
       });
 
-      test('second row has 10 consonants', () {
-        expect(rows[1].keys.length, 10);
+      test('second row has 12 keys', () {
+        expect(rows[1].keys.length, 12);
       });
 
-      test('third row has 9 consonants', () {
-        expect(rows[2].keys.length, 9);
+      test('third row has 11 keys', () {
+        expect(rows[2].keys.length, 11);
       });
 
-      test('first row starts with ក', () {
+      test('first row starts with Khmer digit ១', () {
         final key = rows[0].keys.first;
         expect(key, isA<TextKey>());
-        expect((key as TextKey).primary, 'ក');
+        expect((key as TextKey).primary, '១');
       });
 
-      test('row 3 contains backspace action', () {
-        final actionKeys = rows[3].keys.whereType<ActionKey>();
+      test('row 0 contains backspace action', () {
+        final actionKeys = rows[0].keys.whereType<ActionKey>();
         expect(
           actionKeys.any((k) => k.name == 'backspace'),
           isTrue,
@@ -101,56 +101,6 @@ void main() {
           (k) => k.primary == ' ',
         );
         expect(spaceKeys, isNotEmpty);
-      });
-    });
-
-    group('vowels mode', () {
-      late List<KeyboardRow> rows;
-
-      setUp(() {
-        rows = layout.modes['vowels']!.rows;
-      });
-
-      test('has 4 rows', () {
-        expect(rows.length, 4);
-      });
-
-      test('first row has 10 vowel signs', () {
-        expect(rows[0].keys.length, 10);
-      });
-
-      test('first row starts with ា', () {
-        final key = rows[0].keys.first;
-        expect(key, isA<TextKey>());
-        expect((key as TextKey).primary, 'ា');
-      });
-    });
-
-    group('numbers mode', () {
-      late List<KeyboardRow> rows;
-
-      setUp(() {
-        rows = layout.modes['numbers']!.rows;
-      });
-
-      test('has 4 rows', () {
-        expect(rows.length, 4);
-      });
-
-      test('first row has 10 Khmer digits', () {
-        expect(rows[0].keys.length, 10);
-      });
-
-      test('first row starts with Khmer digit ១', () {
-        final key = rows[0].keys.first;
-        expect(key, isA<TextKey>());
-        expect((key as TextKey).primary, '១');
-      });
-
-      test('first row ends with Khmer zero ០', () {
-        final key = rows[0].keys.last;
-        expect(key, isA<TextKey>());
-        expect((key as TextKey).primary, '០');
       });
     });
   });
