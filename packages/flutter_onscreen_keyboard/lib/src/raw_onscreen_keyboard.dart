@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_onscreen_keyboard/flutter_onscreen_keyboard.dart';
+import 'package:flutter_onscreen_keyboard/src/constants/action_key_type.dart';
 import 'package:flutter_onscreen_keyboard/src/widgets/keys.dart';
 
 /// A low-level on-screen keyboard widget that displays keys
@@ -58,47 +59,106 @@ class RawOnscreenKeyboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeMode = layout.modes[mode]!;
-    final keyColumns = Material(
-      type: MaterialType.transparency,
-      child: Column(
-        spacing: activeMode.verticalSpacing,
+
+    Widget buildRow(KeyboardRow row, {double? height}) {
+      final rowWidget = Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final row in activeMode.rows)
+          ?row.leading,
+          for (final k in row.keys)
             Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ?row.leading,
-                  for (final k in row.keys)
-                    Expanded(
-                      flex: k.flex,
-                      child: switch (k) {
-                        TextKey() => TextKeyWidget(
-                          textKey: k,
-                          showSecondary: showSecondary,
-                          onTapDown: () => onKeyDown(k),
-                          onTapUp: () => onKeyUp(k),
-                        ),
-                        ActionKey() => ActionKeyWidget(
-                          actionKey: k,
-                          pressed: pressedActionKeys.contains(k.name),
-                          onTapDown: () => onKeyDown(k),
-                          onTapUp: () => onKeyUp(k),
-                        ),
-                      },
-                    ),
-                  ?row.trailing,
-                ],
-              ),
+              flex: k.flex,
+              child: switch (k) {
+                TextKey() => TextKeyWidget(
+                  textKey: k,
+                  showSecondary: showSecondary,
+                  onTapDown: () => onKeyDown(k),
+                  onTapUp: () => onKeyUp(k),
+                ),
+                ActionKey() => ActionKeyWidget(
+                  actionKey: k,
+                  pressed: pressedActionKeys.contains(k.name),
+                  onTapDown: () => onKeyDown(k),
+                  onTapUp: () => onKeyUp(k),
+                ),
+              },
             ),
+          ?row.trailing,
         ],
-      ),
-    );
+      );
+      if (height != null) return SizedBox(height: height, child: rowWidget);
+      return Expanded(child: rowWidget);
+    }
 
     return Directionality(
       textDirection: textDirection,
       child: LayoutBuilder(
         builder: (context, constraints) {
+          // Determine the effective keyboard height.
+          final double effectiveHeight;
+          if (constraints.maxHeight.isFinite) {
+            effectiveHeight = constraints.maxHeight;
+          } else {
+            effectiveHeight =
+                constraints.maxWidth / (aspectRatio ?? layout.aspectRatio);
+          }
+
+          // Reference row count: rows in the first non-scrollable,
+          // non-builder mode — keeps per-row height consistent across modes.
+          final referenceMode = layout.modes.values.firstWhere(
+            (m) => !m.scrollable && m.builder == null && m.rows.isNotEmpty,
+            orElse: () => layout.modes.values.first,
+          );
+          final referenceRowCount = referenceMode.rows.isNotEmpty
+              ? referenceMode.rows.length
+              : 5;
+          final rowHeight = effectiveHeight / referenceRowCount;
+
+          // ── Custom builder mode ──────────────────────────────────────────
+          final modeBuilder = activeMode.builder;
+          if (modeBuilder != null) {
+            final built = modeBuilder(
+              context,
+              rowHeight,
+              (text) => onKeyDown(OnscreenKeyboardKey.text(primary: text)),
+              () => onKeyDown(
+                const OnscreenKeyboardKey.action(
+                  name: ActionKeyType.backspace,
+                  child: SizedBox.shrink(),
+                ),
+              ),
+            );
+            // Give the builder a finite height constraint the same way
+            // the standard mode does — otherwise Column+Expanded inside
+            // the builder widget receives unbounded height.
+            if (constraints.maxHeight.isFinite) return built;
+            return AspectRatio(
+              aspectRatio: aspectRatio ?? layout.aspectRatio,
+              child: built,
+            );
+          }
+
+          // ── Standard row-based mode ──────────────────────────────────────
+          final keyColumns = Material(
+            type: MaterialType.transparency,
+            child: activeMode.scrollable
+                ? SingleChildScrollView(
+                    child: Column(
+                      spacing: activeMode.verticalSpacing,
+                      children: [
+                        for (final row in activeMode.rows)
+                          buildRow(row, height: rowHeight),
+                      ],
+                    ),
+                  )
+                : Column(
+                    spacing: activeMode.verticalSpacing,
+                    children: [
+                      for (final row in activeMode.rows) buildRow(row),
+                    ],
+                  ),
+          );
+
           // When the parent provides a finite height (e.g. an explicit
           // height was set on the keyboard container), skip AspectRatio
           // so the key rows fill that exact height instead of

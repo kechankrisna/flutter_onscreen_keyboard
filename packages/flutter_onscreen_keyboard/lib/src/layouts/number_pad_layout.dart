@@ -70,9 +70,21 @@ class NumberPadKeyboardLayout extends KeyboardLayout {
     // Row 4: ± (or spacer) | 0 | . (or spacer) | backspace
     KeyboardRow(
       keys: [
-        if (signed) const OnscreenKeyboardKey.text(primary: '±'),
-        if (decimal) const OnscreenKeyboardKey.text(primary: '.'),
+        if (signed)
+          const OnscreenKeyboardKey.text(primary: '±')
+        else
+          const OnscreenKeyboardKey.action(
+            name: 'noop',
+            child: SizedBox.shrink(),
+          ),
         const OnscreenKeyboardKey.text(primary: '0'),
+        if (decimal)
+          const OnscreenKeyboardKey.text(primary: '.')
+        else
+          const OnscreenKeyboardKey.action(
+            name: 'noop',
+            child: SizedBox.shrink(),
+          ),
         const OnscreenKeyboardKey.action(
           name: ActionKeyType.backspace,
           child: Icon(Icons.backspace_outlined),

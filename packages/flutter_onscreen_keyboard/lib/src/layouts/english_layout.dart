@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_onscreen_keyboard/flutter_onscreen_keyboard.dart';
 import 'package:flutter_onscreen_keyboard/src/constants/action_key_type.dart';
 import 'package:flutter_onscreen_keyboard/src/utils/extensions.dart';
+import 'package:flutter_onscreen_keyboard/src/widgets/emoji_keyboard_widget.dart';
 
 /// A [LanguageKeyboardLayout] for English (QWERTY) input on mobile.
 ///
@@ -47,22 +48,14 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
     'alphabets': KeyboardMode(rows: _alphabetsMode),
     'symbols': KeyboardMode(rows: _symbolsMode, verticalSpacing: 20),
     'emojis': KeyboardMode(
-      rows: _emojisMode,
-      theme: (context) {
-        final theme = context.theme;
-        return theme.copyWith(
-          actionKeyThemeData: theme.actionKeyThemeData.copyWith(
-            padding: const EdgeInsets.all(10),
+      builder: (context, rowHeight, insertText, onBackspace) =>
+          EmojiKeyboardWidget(
+            rowHeight: rowHeight,
+            insertText: insertText,
+            onBackspace: onBackspace,
+            backModeName: 'alphabets',
+            backModeLabel: 'ABC',
           ),
-          textKeyThemeData: theme.textKeyThemeData.copyWith(
-            backgroundColor: Colors.transparent,
-            boxShadow: [],
-            // fix for: https://github.com/flutter/flutter/issues/119623
-            padding: const EdgeInsets.only(left: 3),
-            textStyle: theme.textKeyThemeData.textStyle,
-          ),
-        );
-      },
     ),
   };
 
@@ -271,55 +264,7 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
     ),
   ];
 
-  // ── Emojis mode ────────────────────────────────────────────────────────────
-
-  List<KeyboardRow> get _emojisMode => [
-    ...const [
-      ['😂', '❤️', '😍', '😭', '😊', '🔥', '🤣', '👍', '🥰', '😘'],
-      ['😅', '🙏', '💕', '😭', '🤔', '😁', '🥲', '😎', '😢', '😋'],
-      ['👏', '😮', '😳', '🤗', '🎉', '💔', '😴', '🙄', '😡', '🤩'],
-    ].map(_buildRow),
-
-    KeyboardRow(
-      keys: [
-        ...['😬', '😐', '😇', '🤤', '🤪', '👀', '😷', '😌', '🙈'].map(
-          _buildKey,
-        ),
-        const OnscreenKeyboardKey.action(
-          name: ActionKeyType.backspace,
-          child: Icon(Icons.backspace_outlined),
-        ),
-      ],
-    ),
-
-    KeyboardRow(
-      keys: [
-        OnscreenKeyboardKey.action(
-          name: 'mode_switch',
-          child: const Text('ABC'),
-          onTap: (context) => context.controller.setModeNamed('alphabets'),
-        ),
-        OnscreenKeyboardKey.action(
-          name: 'switch_language',
-          child: const Icon(Icons.language_rounded),
-          onTap: (context) => context.controller.switchLanguage(),
-        ),
-        ...['🌹', '🎂', '🤯', '🥺', '💀', '💩', '🫶', '😈'].map(_buildKey),
-        const OnscreenKeyboardKey.action(
-          name: ActionKeyType.enter,
-          child: Icon(Icons.keyboard_return_rounded),
-        ),
-      ],
-    ),
-  ];
-
   // ── Helpers ────────────────────────────────────────────────────────────────
-
-  OnscreenKeyboardKey _buildKey(String key) =>
-      OnscreenKeyboardKey.text(primary: key);
-
-  KeyboardRow _buildRow(List<String> keys) =>
-      KeyboardRow(keys: keys.map(_buildKey).toList());
 
   OnscreenKeyboardKey _buildKeyWithSecondary((String, String) key) =>
       OnscreenKeyboardKey.text(primary: key.$1, secondary: key.$2);

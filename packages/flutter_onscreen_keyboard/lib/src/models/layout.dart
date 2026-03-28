@@ -45,29 +45,73 @@ abstract class KeyboardLayout {
   double get widthFactor => 1;
 }
 
+/// Signature for a fully custom keyboard mode builder.
+///
+/// Called by [RawOnscreenKeyboard] when [KeyboardMode.builder] is set.
+///
+/// Parameters:
+/// - [context]: the current build context (includes [OnscreenKeyboard] in tree)
+/// - [rowHeight]: suggested height for each key row, derived from the reference
+///   non-custom mode so all rows share a consistent height across modes
+/// - [insertText]: inserts [text] into the active text field at the cursor,
+///   respecting any input formatters on the field
+/// - [onBackspace]: deletes the character (or grapheme cluster) before the
+///   cursor, or the current selection if one exists
+typedef KeyboardModeBuilder = Widget Function(
+  BuildContext context,
+  double rowHeight,
+  void Function(String text) insertText,
+  VoidCallback onBackspace,
+);
+
 /// Represents a single layout mode in the keyboard.
 ///
 /// A mode is a group of [KeyboardRow]s rendered together.
 /// This allows the keyboard to switch between different input styles,
 /// such as letters, symbols, numbers, etc.
+///
+/// When [builder] is provided it takes full control of rendering and [rows] is
+/// ignored. Use [builder] for completely custom modes such as an emoji picker.
 class KeyboardMode {
   /// Creates a keyboard mode.
   ///
-  /// [rows] defines the visual layout of the keyboard for this mode.
+  /// Provide either [rows] (standard row/key layout) or [builder] (fully
+  /// custom widget). At least one must be non-empty / non-null.
   const KeyboardMode({
-    required this.rows,
+    this.rows = const [],
     this.verticalSpacing = 0,
+    this.scrollable = false,
     this.theme,
+    this.builder,
   });
 
   /// The rows of keys displayed in this mode.
+  ///
+  /// Ignored when [builder] is set.
   final List<KeyboardRow> rows;
 
   /// The vertical spacing between rows.
   final double verticalSpacing;
 
+  /// Whether the key rows can be scrolled vertically.
+  ///
+  /// When `true`, the rows are rendered inside a [SingleChildScrollView] with a
+  /// fixed per-row height derived from the keyboard's available height and the
+  /// row count of the first non-scrollable mode. This allows the keyboard to
+  /// contain more rows than fit on screen (e.g. emoji categories).
+  ///
+  /// Ignored when [builder] is set.
+  final bool scrollable;
+
   /// The keyboard theme for this mode.
   final OnscreenKeyboardThemeData Function(BuildContext context)? theme;
+
+  /// Optional fully custom widget builder for this mode.
+  ///
+  /// When provided, [RawOnscreenKeyboard] delegates all rendering to this
+  /// builder. The [rows], [scrollable], and [verticalSpacing] fields are
+  /// ignored. See [KeyboardModeBuilder] for parameter details.
+  final KeyboardModeBuilder? builder;
 }
 
 /// Represents a single row in a keyboard layout.
