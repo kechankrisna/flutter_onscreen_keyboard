@@ -21,7 +21,7 @@ class App extends StatelessWidget {
           // you can add more layouts here
         ],
         width: (context) => MediaQuery.sizeOf(context).width / 2,
-        height: (context) => (MediaQuery.sizeOf(context).width / 2) * 0.5,
+        // height: (context) => (MediaQuery.sizeOf(context).width / 2) * 0.5,
         // ...more options
       ),
 

@@ -40,7 +40,7 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
   bool get isRtl => false;
 
   @override
-  double get aspectRatio => 4 / 3;
+  double get aspectRatio => 4 / 1.5;
 
   @override
   Map<String, KeyboardMode> get modes => {
@@ -124,6 +124,12 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
           onTap: (context) => context.controller.switchMode(),
           flex: 30,
         ),
+        OnscreenKeyboardKey.action(
+          name: 'switch_language',
+          child: const Icon(Icons.language_rounded),
+          onTap: (context) => context.controller.switchLanguage(),
+          flex: 30,
+        ),
         const OnscreenKeyboardKey.text(primary: '/'),
         const OnscreenKeyboardKey.text(
           primary: ' ',
@@ -203,6 +209,12 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
           onTap: (context) => context.controller.switchMode(),
           flex: 30,
         ),
+        OnscreenKeyboardKey.action(
+          name: 'switch_language',
+          child: const Icon(Icons.language_rounded),
+          onTap: (context) => context.controller.switchLanguage(),
+          flex: 30,
+        ),
         const OnscreenKeyboardKey.text(primary: ',', secondary: '<'),
         const OnscreenKeyboardKey.text(
           primary: ' ',
@@ -246,6 +258,11 @@ class EnglishKeyboardLayout extends LanguageKeyboardLayout {
           name: 'mode_switch',
           child: const Icon(Icons.swap_horiz_rounded),
           onTap: (context) => context.controller.switchMode(),
+        ),
+        OnscreenKeyboardKey.action(
+          name: 'switch_language',
+          child: const Icon(Icons.language_rounded),
+          onTap: (context) => context.controller.switchLanguage(),
         ),
         ...['🌹', '🎂', '🤯', '🥺', '💀', '💩', '🫶', '😈'].map(_buildKey),
         const OnscreenKeyboardKey.action(

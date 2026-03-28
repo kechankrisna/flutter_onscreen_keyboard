@@ -63,4 +63,9 @@ abstract interface class OnscreenKeyboardController {
   /// Resets the active mode to the first mode of [layout] and clears any
   /// pressed modifier keys. Use this to switch between languages.
   void setLayout(KeyboardLayout layout);
+
+  /// Cycles to the next language in [OnscreenKeyboard.supportedLanguages].
+  ///
+  /// Does nothing when the list is null or has fewer than 2 entries.
+  void switchLanguage();
 }

@@ -10,7 +10,6 @@ import 'package:flutter_onscreen_keyboard/src/constants/action_key_type.dart';
 import 'package:flutter_onscreen_keyboard/src/theme/onscreen_keyboard_theme.dart';
 import 'package:flutter_onscreen_keyboard/src/types.dart';
 import 'package:flutter_onscreen_keyboard/src/utils/extensions.dart';
-import 'package:flutter_onscreen_keyboard/src/widgets/language_picker_bar.dart';
 import 'package:flutter_onscreen_keyboard/src/widgets/suggestion_bar.dart';
 
 part 'onscreen_keyboard_controller.dart';
@@ -484,6 +483,19 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
     });
   }
 
+  @override
+  void switchLanguage() {
+    final langs = widget.supportedLanguages;
+    if (langs == null || langs.length < 2) return;
+    final currentIndex = langs.indexWhere(
+      (l) =>
+          _layout is LanguageKeyboardLayout &&
+          l.languageCode == (_layout as LanguageKeyboardLayout).languageCode,
+    );
+    final nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % langs.length;
+    setLayout(langs[nextIndex]);
+  }
+
   // ── Word-prediction state ────────────────────────────────────────────────
 
   List<String> _suggestions = [];
@@ -798,19 +810,6 @@ class _OnscreenKeyboardState extends State<OnscreenKeyboard>
                                                             actions: widget
                                                                 .buildControlBarActions
                                                                 ?.call(context),
-                                                          ),
-                                                        if (widget.supportedLanguages !=
-                                                                null &&
-                                                            widget
-                                                                    .supportedLanguages!
-                                                                    .length >
-                                                                1)
-                                                          LanguagePickerBar(
-                                                            supportedLanguages:
-                                                                widget
-                                                                    .supportedLanguages!,
-                                                            activeLanguageCode:
-                                                                activeLanguageCode,
                                                           ),
                                                         SuggestionBar(
                                                           suggestions:

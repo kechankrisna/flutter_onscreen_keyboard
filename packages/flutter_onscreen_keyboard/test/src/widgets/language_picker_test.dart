@@ -66,27 +66,5 @@ void main() {
       );
       expect(sizedBox.height, 36);
     });
-
-    testWidgets(
-      'language picker is hidden when supportedLanguages has 1 entry '
-      'inside OnscreenKeyboard',
-      (tester) async {
-        await tester.pumpWidget(
-          MaterialApp(
-            builder: OnscreenKeyboard.builder(
-              width: (_) => 400,
-              supportedLanguages: [const KhmerKeyboardLayout()],
-            ),
-            home: const Scaffold(body: OnscreenKeyboardTextField()),
-          ),
-        );
-
-        await tester.tap(find.byType(OnscreenKeyboardTextField));
-        await tester.pumpAndSettle();
-
-        // Only 1 language → picker should not be rendered.
-        expect(find.byType(LanguagePickerBar), findsNothing);
-      },
-    );
   });
 }

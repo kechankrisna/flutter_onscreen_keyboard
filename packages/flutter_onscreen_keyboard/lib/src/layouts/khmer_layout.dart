@@ -37,7 +37,7 @@ class KhmerKeyboardLayout extends LanguageKeyboardLayout {
   bool get isRtl => false;
 
   @override
-  double get aspectRatio => 4 / 3;
+  double get aspectRatio => 4 / 1.5;
 
   @override
   Map<String, KeyboardMode> get modes => {
@@ -114,7 +114,7 @@ class KhmerKeyboardLayout extends LanguageKeyboardLayout {
       ],
     ),
 
-    // Row 4 — mode-switch, space, ។, Enter
+    // Row 4 — mode-switch, switch_language, space, ។, Enter
     KeyboardRow(
       keys: [
         OnscreenKeyboardKey.action(
@@ -122,6 +122,12 @@ class KhmerKeyboardLayout extends LanguageKeyboardLayout {
           child: const Text('ក→'),
           onTap: (context) => context.controller.setModeNamed('vowels'),
           flex: 35,
+        ),
+        OnscreenKeyboardKey.action(
+          name: 'switch_language',
+          child: const Icon(Icons.language_rounded),
+          onTap: (context) => context.controller.switchLanguage(),
+          flex: 30,
         ),
         const OnscreenKeyboardKey.text(
           primary: ' ',
@@ -165,7 +171,7 @@ class KhmerKeyboardLayout extends LanguageKeyboardLayout {
       trailing: const Expanded(flex: 10, child: SizedBox.shrink()),
     ),
 
-    // Row 3 — mode-switching + punctuation + backspace + enter
+    // Row 3 — mode-switching + switch_language + punctuation + backspace + enter
     KeyboardRow(
       keys: [
         OnscreenKeyboardKey.action(
@@ -179,6 +185,12 @@ class KhmerKeyboardLayout extends LanguageKeyboardLayout {
           child: const Text('ក'),
           onTap: (context) => context.controller.setModeNamed('consonants'),
           flex: 35,
+        ),
+        OnscreenKeyboardKey.action(
+          name: 'switch_language',
+          child: const Icon(Icons.language_rounded),
+          onTap: (context) => context.controller.switchLanguage(),
+          flex: 30,
         ),
         const OnscreenKeyboardKey.text(primary: '។'),
         const OnscreenKeyboardKey.text(primary: '៕'),
@@ -228,7 +240,7 @@ class KhmerKeyboardLayout extends LanguageKeyboardLayout {
       trailing: const Expanded(flex: 10, child: SizedBox.shrink()),
     ),
 
-    // Row 3 — back to consonants + punctuation + space + backspace + enter
+    // Row 3 — back to consonants + switch_language + punctuation + space + backspace + enter
     KeyboardRow(
       keys: [
         OnscreenKeyboardKey.action(
@@ -236,6 +248,12 @@ class KhmerKeyboardLayout extends LanguageKeyboardLayout {
           child: const Text('ក'),
           onTap: (context) => context.controller.setModeNamed('consonants'),
           flex: 35,
+        ),
+        OnscreenKeyboardKey.action(
+          name: 'switch_language',
+          child: const Icon(Icons.language_rounded),
+          onTap: (context) => context.controller.switchLanguage(),
+          flex: 30,
         ),
         const OnscreenKeyboardKey.text(primary: '។'),
         const OnscreenKeyboardKey.text(primary: '៕'),
